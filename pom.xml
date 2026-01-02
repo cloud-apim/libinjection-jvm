@@ -6,7 +6,7 @@
 
     <groupId>com.cloud.apim</groupId>
     <artifactId>libinjection-jvm</artifactId>
-    <version>3.9.2</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>libinjection-jvm</name>

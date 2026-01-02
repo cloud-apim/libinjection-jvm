@@ -24,14 +24,14 @@ This is a faithful port of the C implementation to Java, maintaining the same de
 <dependency>
     <groupId>com.cloud.apim</groupId>
     <artifactId>libinjection-jvm</artifactId>
-    <version>3.9.2</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```gradle
-implementation 'com.cloud.apim:libinjection-jvm:3.9.2'
+implementation 'com.cloud.apim:libinjection-jvm:1.0.0'
 ```
 
 ## Usage
@@ -121,14 +121,6 @@ mvn source:jar javadoc:jar
 ## Version Information
 
 This port follows the versioning of the original libinjection C library.
-
-**Current version: 3.9.2**
-
-Version format: `major.minor.point`
-
-- **Major**: Significant changes to the API and/or fingerprint format
-- **Minor**: Code changes (logic, optimization, refactoring)
-- **Point**: Data-only changes (fingerprint updates)
 
 ## Performance Considerations
 

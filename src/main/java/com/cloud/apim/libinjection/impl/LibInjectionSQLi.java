@@ -1,5 +1,22 @@
 package com.cloud.apim.libinjection.impl;
 
+/**
+ * SQL injection detection implementation.
+ * <p>
+ * This class provides methods to detect SQL injection attacks by tokenizing
+ * SQL input and generating fingerprints that are matched against known
+ * malicious patterns. It supports both ANSI SQL and MySQL dialects.
+ * </p>
+ * <p>
+ * The detection process involves:
+ * <ul>
+ * <li>Tokenizing the input into SQL tokens (keywords, operators, strings, etc.)</li>
+ * <li>Generating a fingerprint from the token sequence</li>
+ * <li>Checking the fingerprint against blacklists and whitelists</li>
+ * <li>Analyzing token patterns for suspicious structures</li>
+ * </ul>
+ * </p>
+ */
 public class LibInjectionSQLi {
     
     private static final int LIBINJECTION_SQLI_TOKEN_SIZE = 32;
@@ -143,6 +160,14 @@ public class LibInjectionSQLi {
         return a.equals(b);
     }
     
+    /**
+     * Binary search for a keyword in the keyword array.
+     * 
+     * @param key the keyword to search for
+     * @param len the length of the keyword
+     * @param keywords the keyword array
+     * @return the keyword type, or '\0' if not found
+     */
     private static char bsearch_keyword_type(String key, int len, SqliKeywords.Keyword[] keywords) {
         int left = 0;
         int right = keywords.length - 1;
@@ -163,10 +188,27 @@ public class LibInjectionSQLi {
         return CHAR_NULL;
     }
     
+    /**
+     * Checks if a word is a SQL keyword.
+     * 
+     * @param key the word to check
+     * @param len the length of the word
+     * @return the keyword type character, or '\0' if not a keyword
+     */
     private static char is_keyword(String key, int len) {
         return bsearch_keyword_type(key, len, SqliKeywords.SQL_KEYWORDS);
     }
     
+    /**
+     * Main entry point for SQL injection detection.
+     * <p>
+     * Analyzes the input string for SQL injection patterns. Returns false
+     * for null or empty input.
+     * </p>
+     * 
+     * @param input the string to analyze for SQL injection
+     * @return true if SQL injection is detected, false otherwise
+     */
     public static boolean libinjection_is_sqli(String input) {
         if (input == null || input.length() == 0) {
             return false;
@@ -177,6 +219,14 @@ public class LibInjectionSQLi {
         return libinjection_is_sqli(sql_state);
     }
     
+    /**
+     * Initializes the SQL injection detection state.
+     * 
+     * @param sf the state object to initialize
+     * @param s the input string
+     * @param len the length of the input
+     * @param flags parsing flags (quote type and SQL dialect)
+     */
     private static void libinjection_sqli_init(SqliState sf, String s, int len, int flags) {
         if (flags == 0) {
             flags = FLAG_QUOTE_NONE | FLAG_SQL_ANSI;
@@ -199,6 +249,16 @@ public class LibInjectionSQLi {
         }
     }
     
+    /**
+     * Core SQL injection detection logic.
+     * <p>
+     * Tests the input with multiple parsing strategies (different quote types
+     * and SQL dialects) to detect injection attempts.
+     * </p>
+     * 
+     * @param sql_state the initialized state object
+     * @return true if SQL injection is detected, false otherwise
+     */
     private static boolean libinjection_is_sqli(SqliState sql_state) {
         String s = sql_state.s;
         int slen = sql_state.slen;
@@ -239,10 +299,29 @@ public class LibInjectionSQLi {
         return false;
     }
     
+    /**
+     * Determines if the input should be reparsed as MySQL dialect.
+     * <p>
+     * MySQL has specific comment styles that may indicate injection.
+     * </p>
+     * 
+     * @param sql_state the state object
+     * @return true if MySQL-specific patterns are detected
+     */
     private static boolean reparse_as_mysql(SqliState sql_state) {
         return sql_state.stats_comment_ddx > 0 || sql_state.stats_comment_hash > 0;
     }
     
+    /**
+     * Generates a fingerprint from the tokenized input.
+     * <p>
+     * The fingerprint is a string of characters where each character represents
+     * a token type (e.g., 'k' for keyword, 's' for string, 'o' for operator).
+     * </p>
+     * 
+     * @param sql_state the state object
+     * @param flags parsing flags
+     */
     private static void libinjection_sqli_fingerprint(SqliState sql_state, int flags) {
         libinjection_sqli_reset(sql_state, flags);
         int tlen = libinjection_sqli_fold(sql_state);
@@ -275,6 +354,12 @@ public class LibInjectionSQLi {
         }
     }
     
+    /**
+     * Resets the state for reparsing with different flags.
+     * 
+     * @param sf the state object
+     * @param flags the new parsing flags
+     */
     private static void libinjection_sqli_reset(SqliState sf, int flags) {
         if (flags == 0) {
             flags = FLAG_QUOTE_NONE | FLAG_SQL_ANSI;
@@ -284,11 +369,23 @@ public class LibInjectionSQLi {
         libinjection_sqli_init(sf, s, slen, flags);
     }
     
+    /**
+     * Checks if the fingerprint matches known SQL injection patterns.
+     * 
+     * @param sql_state the state object with generated fingerprint
+     * @return true if the fingerprint matches a known attack pattern
+     */
     private static boolean libinjection_sqli_check_fingerprint(SqliState sql_state) {
         return libinjection_sqli_blacklist(sql_state) && 
                libinjection_sqli_not_whitelist(sql_state);
     }
     
+    /**
+     * Checks if the fingerprint is in the blacklist.
+     * 
+     * @param sql_state the state object
+     * @return true if the fingerprint is blacklisted
+     */
     private static boolean libinjection_sqli_blacklist(SqliState sql_state) {
         char[] fp2 = new char[8];
         String fpStr = new String(sql_state.fingerprint).replace("\0", "");
@@ -312,6 +409,16 @@ public class LibInjectionSQLi {
         return is_keyword(fp2Str, len + 1) == TYPE_FINGERPRINT;
     }
     
+    /**
+     * Checks if the fingerprint is NOT in the whitelist.
+     * <p>
+     * This method applies additional heuristics to filter out false positives
+     * by checking for legitimate SQL patterns.
+     * </p>
+     * 
+     * @param sql_state the state object
+     * @return true if the pattern is suspicious (not whitelisted)
+     */
     private static boolean libinjection_sqli_not_whitelist(SqliState sql_state) {
         String fpStr = new String(sql_state.fingerprint).replace("\0", "");
         int tlen = fpStr.length();
@@ -405,6 +512,16 @@ public class LibInjectionSQLi {
         return true;
     }
     
+    /**
+     * Folds (collapses) consecutive tokens to simplify the fingerprint.
+     * <p>
+     * This process removes noise and focuses on the essential structure
+     * of the SQL statement.
+     * </p>
+     * 
+     * @param sf the state object
+     * @return the number of tokens after folding
+     */
     private static int libinjection_sqli_fold(SqliState sf) {
         int pos = 0;
         int left = 0;
@@ -464,6 +581,15 @@ public class LibInjectionSQLi {
         return left;
     }
     
+    /**
+     * Extracts the next token from the input.
+     * <p>
+     * Identifies SQL keywords, operators, strings, numbers, comments, etc.
+     * </p>
+     * 
+     * @param sf the state object
+     * @return true if a token was extracted, false if end of input
+     */
     private static boolean libinjection_sqli_tokenize(SqliState sf) {
         if (sf.slen == 0) {
             return false;
@@ -557,6 +683,17 @@ public class LibInjectionSQLi {
         return false;
     }
     
+    /**
+     * Parses a quoted string token.
+     * 
+     * @param cs the input string
+     * @param len the length of the input
+     * @param pos the current position
+     * @param st the token to populate
+     * @param delim the quote delimiter
+     * @param offset offset from position
+     * @return the new position after parsing
+     */
     private static int parse_string_core(String cs, int len, int pos, SqliToken st, char delim, int offset) {
         int qpos = cs.indexOf(delim, pos + offset);
         
@@ -585,6 +722,14 @@ public class LibInjectionSQLi {
         }
     }
     
+    /**
+     * Checks if a character is backslash-escaped.
+     * 
+     * @param s the string
+     * @param end the position to check
+     * @param start the start position
+     * @return true if the character is escaped
+     */
     private static boolean is_backslash_escaped(String s, int end, int start) {
         int count = 0;
         for (int ptr = end; ptr >= start; ptr--) {
@@ -596,10 +741,24 @@ public class LibInjectionSQLi {
         return (count & 1) == 1;
     }
     
+    /**
+     * Checks if a delimiter is escaped by doubling (e.g., '' or "").
+     * 
+     * @param s the string
+     * @param cur the current position
+     * @param end the end position
+     * @return true if the delimiter is doubled
+     */
     private static boolean is_double_delim_escaped(String s, int cur, int end) {
         return (cur + 1) < end && s.charAt(cur + 1) == s.charAt(cur);
     }
     
+    /**
+     * Parses an end-of-line comment (-- or #).
+     * 
+     * @param sf the state object
+     * @return the new position after parsing
+     */
     private static int parse_eol_comment(SqliState sf) {
         int endpos = sf.s.indexOf('\n', sf.pos);
         if (endpos == -1) {
@@ -611,6 +770,12 @@ public class LibInjectionSQLi {
         }
     }
     
+    /**
+     * Parses a numeric literal.
+     * 
+     * @param sf the state object
+     * @return the new position after parsing
+     */
     private static int parse_number(SqliState sf) {
         int start = sf.pos;
         int pos = sf.pos;
@@ -630,6 +795,12 @@ public class LibInjectionSQLi {
         return pos;
     }
     
+    /**
+     * Parses a word token (keyword or bareword).
+     * 
+     * @param sf the state object
+     * @return the new position after parsing
+     */
     private static int parse_word(SqliState sf) {
         int pos = sf.pos;
         int wlen = strlencspn(sf.s, pos, sf.slen - pos, " []{}()<>:\\?=@!#~+-*/&|^%(),'\t\n\u000B\f\r\"\u00A0\u0000;");
@@ -648,6 +819,15 @@ public class LibInjectionSQLi {
         return pos + wlen;
     }
     
+    /**
+     * Looks up a word in the keyword dictionary.
+     * 
+     * @param sql_state the state object
+     * @param lookup_type the type of lookup
+     * @param str the word to look up
+     * @param len the length of the word
+     * @return the token type character, or '\0' if not found
+     */
     private static char libinjection_sqli_lookup_word(SqliState sql_state, int lookup_type, String str, int len) {
         if (lookup_type == LOOKUP_FINGERPRINT) {
             return libinjection_sqli_check_fingerprint(sql_state) ? 'X' : '\0';
@@ -656,6 +836,15 @@ public class LibInjectionSQLi {
         }
     }
     
+    /**
+     * Assigns values to a token.
+     * 
+     * @param st the token
+     * @param stype the token type
+     * @param pos the position
+     * @param len the length
+     * @param value the token value
+     */
     private static void st_assign(SqliToken st, char stype, int pos, int len, String value) {
         int last = Math.min(len, LIBINJECTION_SQLI_TOKEN_SIZE - 1);
         st.type = stype;
@@ -667,6 +856,15 @@ public class LibInjectionSQLi {
         st.val[last] = CHAR_NULL;
     }
     
+    /**
+     * Assigns a single character value to a token.
+     * 
+     * @param st the token
+     * @param stype the token type
+     * @param pos the position
+     * @param len the length
+     * @param value the character value
+     */
     private static void st_assign_char(SqliToken st, char stype, int pos, int len, char value) {
         st.type = stype;
         st.pos = pos;
@@ -675,6 +873,12 @@ public class LibInjectionSQLi {
         st.val[1] = CHAR_NULL;
     }
     
+    /**
+     * Checks if a token is a unary operator.
+     * 
+     * @param st the token
+     * @return true if the token is a unary operator
+     */
     private static boolean st_is_unary_op(SqliToken st) {
         if (st.type != TYPE_OPERATOR) {
             return false;

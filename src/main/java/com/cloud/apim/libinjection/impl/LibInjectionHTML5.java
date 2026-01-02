@@ -2,6 +2,19 @@ package com.cloud.apim.libinjection.impl;
 
 import java.util.function.Function;
 
+/**
+ * HTML5 parser implementation for XSS detection.
+ * <p>
+ * This class implements an HTML5-compliant tokenizer that parses HTML content
+ * and identifies potentially malicious patterns. It follows the HTML5 specification's
+ * tokenization algorithm to accurately parse various HTML contexts including tags,
+ * attributes, comments, and CDATA sections.
+ * </p>
+ * <p>
+ * The parser uses a state machine approach where each state function processes
+ * characters and transitions to the next appropriate state.
+ * </p>
+ */
 public class LibInjectionHTML5 {
     
     private static final int CHAR_EOF = -1;
@@ -19,6 +32,18 @@ public class LibInjectionHTML5 {
     private static final int CHAR_RIGHTB = 93;
     private static final int CHAR_TICK = 96;
 
+    /**
+     * Initializes the HTML5 parser state.
+     * <p>
+     * Sets up the initial state of the parser based on the provided flags,
+     * which determine the parsing context (e.g., normal data, attribute value, etc.).
+     * </p>
+     * 
+     * @param hs the HTML5 state object to initialize
+     * @param s the input string to parse
+     * @param len the length of the input string
+     * @param flags the initial parsing context flags
+     */
     public static void libinjection_h5_init(H5State hs, String s, int len, Html5Flags flags) {
         hs.s = s;
         hs.len = len;
@@ -47,14 +72,36 @@ public class LibInjectionHTML5 {
         }
     }
 
+    /**
+     * Advances the parser to the next token.
+     * <p>
+     * Processes the input and extracts the next token according to the HTML5
+     * tokenization rules. The token information is stored in the state object.
+     * </p>
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was successfully extracted, 0 if end of input reached
+     */
     public static int libinjection_h5_next(H5State hs) {
         return hs.state.apply(hs);
     }
 
+    /**
+     * Checks if a character is whitespace according to HTML5 specification.
+     * 
+     * @param ch the character to check
+     * @return true if the character is whitespace, false otherwise
+     */
     private static boolean h5_is_white(char ch) {
         return ch == ' ' || ch == '\t' || ch == '\n' || ch == 0x0B || ch == '\f' || ch == '\r';
     }
 
+    /**
+     * Skips whitespace characters in the input.
+     * 
+     * @param hs the HTML5 state object
+     * @return the first non-whitespace character, or CHAR_EOF if end reached
+     */
     private static int h5_skip_white(H5State hs) {
         char ch;
         while (hs.pos < hs.len) {
@@ -76,10 +123,22 @@ public class LibInjectionHTML5 {
         return CHAR_EOF;
     }
 
+    /**
+     * End-of-file state handler.
+     * 
+     * @param hs the HTML5 state object
+     * @return 0 indicating no more tokens
+     */
     private static int h5_state_eof(H5State hs) {
         return 0;
     }
 
+    /**
+     * Data state handler - processes plain text content.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_data(H5State hs) {
         int idx = hs.s.indexOf(CHAR_LT, hs.pos);
         if (idx == -1) {
@@ -103,6 +162,12 @@ public class LibInjectionHTML5 {
         return 1;
     }
 
+    /**
+     * Tag open state handler - processes the character after '&lt;'.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_tag_open(H5State hs) {
         if (hs.pos >= hs.len) {
             return 0;
@@ -137,6 +202,12 @@ public class LibInjectionHTML5 {
         }
     }
 
+    /**
+     * End tag open state handler - processes closing tags.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_end_tag_open(H5State hs) {
         if (hs.pos >= hs.len) {
             return 0;
@@ -152,6 +223,12 @@ public class LibInjectionHTML5 {
         return h5_state_bogus_comment(hs);
     }
 
+    /**
+     * Tag name close state handler - processes the closing '&gt;' of a tag.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_tag_name_close(H5State hs) {
         hs.is_close = false;
         hs.token_start = hs.s.substring(hs.pos, hs.pos + 1);
@@ -166,6 +243,12 @@ public class LibInjectionHTML5 {
         return 1;
     }
 
+    /**
+     * Tag name state handler - extracts tag names.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_tag_name(H5State hs) {
         char ch;
         int pos = hs.pos;
@@ -213,6 +296,12 @@ public class LibInjectionHTML5 {
         return 1;
     }
 
+    /**
+     * Before attribute name state handler.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_before_attribute_name(H5State hs) {
         int ch = h5_skip_white(hs);
         switch (ch) {
@@ -233,6 +322,12 @@ public class LibInjectionHTML5 {
         }
     }
 
+    /**
+     * Attribute name state handler - extracts attribute names.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_attribute_name(H5State hs) {
         char ch;
         int pos = hs.pos + 1;
@@ -278,6 +373,12 @@ public class LibInjectionHTML5 {
         return 1;
     }
 
+    /**
+     * After attribute name state handler.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_after_attribute_name(H5State hs) {
         int c = h5_skip_white(hs);
         switch (c) {
@@ -296,6 +397,12 @@ public class LibInjectionHTML5 {
         }
     }
 
+    /**
+     * Before attribute value state handler.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_before_attribute_value(H5State hs) {
         int c = h5_skip_white(hs);
         
@@ -315,6 +422,13 @@ public class LibInjectionHTML5 {
         }
     }
 
+    /**
+     * Attribute value quote state handler - processes quoted attribute values.
+     * 
+     * @param hs the HTML5 state object
+     * @param qchar the quote character (single, double, or back quote)
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_attribute_value_quote(H5State hs, char qchar) {
         if (hs.pos > 0) {
             hs.pos += 1;
@@ -336,18 +450,42 @@ public class LibInjectionHTML5 {
         return 1;
     }
 
+    /**
+     * Attribute value double quote state handler.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_attribute_value_double_quote(H5State hs) {
         return h5_state_attribute_value_quote(hs, (char) CHAR_DOUBLE);
     }
 
+    /**
+     * Attribute value single quote state handler.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_attribute_value_single_quote(H5State hs) {
         return h5_state_attribute_value_quote(hs, (char) CHAR_SINGLE);
     }
 
+    /**
+     * Attribute value back quote state handler.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_attribute_value_back_quote(H5State hs) {
         return h5_state_attribute_value_quote(hs, (char) CHAR_TICK);
     }
 
+    /**
+     * Attribute value no quote state handler - processes unquoted attribute values.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_attribute_value_no_quote(H5State hs) {
         char ch;
         int pos = hs.pos;
@@ -377,6 +515,12 @@ public class LibInjectionHTML5 {
         return 1;
     }
 
+    /**
+     * After attribute value quoted state handler.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_after_attribute_value_quoted_state(H5State hs) {
         if (hs.pos >= hs.len) {
             return 0;
@@ -400,6 +544,12 @@ public class LibInjectionHTML5 {
         }
     }
 
+    /**
+     * Self-closing start tag state handler - processes self-closing tags like &lt;br/&gt;.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_self_closing_start_tag(H5State hs) {
         if (hs.pos >= hs.len) {
             return 0;
@@ -417,6 +567,12 @@ public class LibInjectionHTML5 {
         }
     }
 
+    /**
+     * Bogus comment state handler - handles malformed comments.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_bogus_comment(H5State hs) {
         int idx = hs.s.indexOf(CHAR_GT, hs.pos);
         if (idx == -1) {
@@ -435,6 +591,12 @@ public class LibInjectionHTML5 {
         return 1;
     }
 
+    /**
+     * Bogus comment state handler for percent-delimited comments.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_bogus_comment2(H5State hs) {
         int pos = hs.pos;
         while (true) {
@@ -462,6 +624,12 @@ public class LibInjectionHTML5 {
         }
     }
 
+    /**
+     * Markup declaration open state handler - processes DOCTYPE, CDATA, and comments.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_markup_declaration_open(H5State hs) {
         int remaining = hs.len - hs.pos;
         if (remaining >= 7 &&
@@ -493,6 +661,12 @@ public class LibInjectionHTML5 {
         return h5_state_bogus_comment(hs);
     }
 
+    /**
+     * Comment state handler - processes HTML comments.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_comment(H5State hs) {
         char ch;
         int pos = hs.pos;
@@ -550,6 +724,12 @@ public class LibInjectionHTML5 {
         }
     }
 
+    /**
+     * CDATA section state handler - processes CDATA sections.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_cdata(H5State hs) {
         int pos = hs.pos;
         while (true) {
@@ -574,6 +754,12 @@ public class LibInjectionHTML5 {
         }
     }
 
+    /**
+     * DOCTYPE state handler - processes DOCTYPE declarations.
+     * 
+     * @param hs the HTML5 state object
+     * @return 1 if a token was extracted, 0 otherwise
+     */
     private static int h5_state_doctype(H5State hs) {
         hs.token_start = hs.s.substring(hs.pos);
         hs.token_type = Html5Type.DOCTYPE;
