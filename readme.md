@@ -1,7 +1,7 @@
 # libinjection-jvm
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Maven Central](https://img.shields.io/maven-central/v/com.cloud.apim/libinjection-jvm.svg)](https://search.maven.org/artifact/com.cloud.apim/libinjection-jvm)
+[![Maven Central](https://img.shields.io/maven-central/v/com.cloud-apim/libinjection-jvm.svg)](https://search.maven.org/artifact/com.cloud-apim/libinjection-jvm)
 
 Java port of [libinjection](https://github.com/client9/libinjection) - SQL / SQLI / XSS tokenizer parser analyzer for detecting injection attacks.
 
@@ -22,7 +22,7 @@ This is a faithful port of the C implementation to Java, maintaining the same de
 
 ```xml
 <dependency>
-    <groupId>com.cloud.apim</groupId>
+    <groupId>com.cloud-apim</groupId>
     <artifactId>libinjection-jvm</artifactId>
     <version>1.0.0</version>
 </dependency>
@@ -31,7 +31,7 @@ This is a faithful port of the C implementation to Java, maintaining the same de
 ### Gradle
 
 ```gradle
-implementation 'com.cloud.apim:libinjection-jvm:1.0.0'
+implementation 'com.cloud-apim:libinjection-jvm:1.0.0'
 ```
 
 ## Usage
@@ -168,7 +168,7 @@ The original libinjection C library is:
 - **Original C Library**: https://github.com/client9/libinjection
 - **Documentation**: https://libinjection.client9.com/
 - **Issue Tracker**: https://github.com/cloud-apim/libinjection-jvm/issues
-- **Maven Central**: https://search.maven.org/artifact/com.cloud.apim/libinjection-jvm
+- **Maven Central**: https://search.maven.org/artifact/com.cloud-apim/libinjection-jvm
 
 ## Related Projects
 
