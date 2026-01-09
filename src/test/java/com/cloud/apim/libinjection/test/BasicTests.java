@@ -12,13 +12,19 @@ public class BasicTests {
         String maliciousInput = "1' OR '1'='1";
         assertTrue("Should detect basic SQL injection", LibInjectionSQLi.libinjection_is_sqli(maliciousInput));
     }
+
+    @Test
+    public void testSQLiDetectionWithBasicInjection2() {
+        String maliciousInput = "1234 OR 1=1";
+        assertTrue("Should detect basic SQL injection", LibInjectionSQLi.libinjection_is_sqli(maliciousInput));
+    }
     
     @Test
     public void testSQLiDetectionWithUnionAttack() {
         String maliciousInput = "1 UNION SELECT * FROM users";
         assertTrue("Should detect UNION-based SQL injection", LibInjectionSQLi.libinjection_is_sqli(maliciousInput));
     }
-    
+
     @Test
     public void testSQLiDetectionWithCleanInput() {
         String cleanInput = "john.doe@example.com";
