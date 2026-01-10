@@ -10,15 +10,21 @@ public class BasicTests {
     @Test
     public void testSQLiDetectionWithBasicInjection() {
         String maliciousInput = "1' OR '1'='1";
-        assertTrue("Should detect basic SQL injection", LibInjectionSQLi.libinjection_is_sqli(maliciousInput));
+        assertTrue("Should detect basic SQL injection 1", LibInjectionSQLi.libinjection_is_sqli(maliciousInput));
     }
 
     @Test
     public void testSQLiDetectionWithBasicInjection2() {
         String maliciousInput = "1234 OR 1=1";
-        assertTrue("Should detect basic SQL injection", LibInjectionSQLi.libinjection_is_sqli(maliciousInput));
+        assertTrue("Should detect basic SQL injection 1", LibInjectionSQLi.libinjection_is_sqli(maliciousInput));
     }
-    
+
+    @Test
+    public void testSQLiDetectionWithBasicInjection3() {
+        String maliciousInput = "9999 or /* optimizer hint */ true";
+        assertTrue("Should detect basic SQL injection 3", LibInjectionSQLi.libinjection_is_sqli(maliciousInput));
+    }
+
     @Test
     public void testSQLiDetectionWithUnionAttack() {
         String maliciousInput = "1 UNION SELECT * FROM users";
