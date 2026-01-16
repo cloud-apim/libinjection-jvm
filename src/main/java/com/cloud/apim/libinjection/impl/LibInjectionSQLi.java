@@ -1014,8 +1014,13 @@ public class LibInjectionSQLi {
                 case '8':
                 case '9':
                     sf.pos = parse_number(sf);
-                    sf.stats_tokens += 1;
-                    return true;
+                    // Check if a token was actually assigned (handles 1E, 1.e without exponent)
+                    if (sf.current.type != TYPE_NONE) {
+                        sf.stats_tokens += 1;
+                        return true;
+                    }
+                    // No token assigned, continue parsing
+                    continue;
 
                 case 'B':
                 case 'b':
