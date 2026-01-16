@@ -194,6 +194,68 @@ public class LibInjectionSQLi {
         return libinjection_is_sqli(sql_state);
     }
 
+    /**
+     * Checks if the input is SQLi and returns the fingerprint.
+     *
+     * @param input the input string to analyze
+     * @return a SqliResult containing the detection result and fingerprint
+     */
+    public static SqliResult libinjection_sqli(String input) {
+        if (input == null || input.length() == 0) {
+            return new SqliResult(false, "");
+        }
+
+        SqliState sql_state = new SqliState();
+        libinjection_sqli_init(sql_state, input, input.length(), 0);
+        boolean result = libinjection_is_sqli(sql_state);
+        String fingerprint = new String(sql_state.fingerprint).replace("\0", "");
+        return new SqliResult(result, fingerprint);
+    }
+
+    /**
+     * Initializes a SqliState for manual tokenization/folding.
+     *
+     * @param state the state to initialize
+     * @param input the input string
+     * @param flags the parsing flags
+     */
+    public static void sqli_init(SqliState state, String input, int flags) {
+        libinjection_sqli_init(state, input, input.length(), flags);
+    }
+
+    /**
+     * Performs token folding on the state.
+     *
+     * @param state the initialized state
+     * @return the number of tokens after folding
+     */
+    public static int sqli_fold(SqliState state) {
+        return libinjection_sqli_fold(state);
+    }
+
+    /**
+     * Tokenizes the next token from the input.
+     *
+     * @param state the initialized state
+     * @return true if a token was extracted, false if end of input
+     */
+    public static boolean sqli_tokenize(SqliState state) {
+        return libinjection_sqli_tokenize(state);
+    }
+
+    /**
+     * Result of SQLi detection containing the detection result and fingerprint.
+     */
+    public static class SqliResult {
+        public final boolean isSqli;
+        public final String fingerprint;
+
+        public SqliResult(boolean isSqli, String fingerprint) {
+            this.isSqli = isSqli;
+            this.fingerprint = fingerprint;
+        }
+    }
+
     private static void libinjection_sqli_init(SqliState sf, String s, int len, int flags) {
         if (flags == 0) {
             flags = FLAG_QUOTE_NONE | FLAG_SQL_ANSI;

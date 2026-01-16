@@ -149,7 +149,7 @@ public class XSSTests {
         // base64 encoded "thisisacookie", prefixed by "on"
         assertFalse(LibInjectionXSS.libinjection_xss("onY29va2llcw==", 14));
     }
-    
+
     @Test
     public void testXSS_hrefAmpHash() {
         assertFalse(LibInjectionXSS.libinjection_xss("href=&#", 7));
