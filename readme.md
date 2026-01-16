@@ -24,14 +24,14 @@ This is a faithful port of the C implementation to Java, maintaining the same de
 <dependency>
     <groupId>com.cloud-apim</groupId>
     <artifactId>libinjection-jvm</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```gradle
-implementation 'com.cloud-apim:libinjection-jvm:1.0.0'
+implementation 'com.cloud-apim:libinjection-jvm:1.1.0'
 ```
 
 ## Usage
