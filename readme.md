@@ -106,7 +106,10 @@ This Java port intentionally follows the C implementation closely rather than us
 ```bash
 # Clone the repository
 git clone https://github.com/cloud-apim/libinjection-jvm.git
-cd libinjection-jvm/java
+cd libinjection-jvm
+
+# Setup test data (required before running tests)
+./setup.sh
 
 # Build with Maven
 mvn clean install
@@ -117,6 +120,8 @@ mvn test
 # Generate sources and javadoc
 mvn source:jar javadoc:jar
 ```
+
+> **Note**: The `setup.sh` script downloads the test data from libinjection-go which is required to run the HTML5 parser tests.
 
 ## Version Information
 
