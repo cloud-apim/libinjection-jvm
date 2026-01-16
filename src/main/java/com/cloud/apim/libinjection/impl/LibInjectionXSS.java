@@ -689,6 +689,41 @@ public class LibInjectionXSS {
     }
 
     /**
+     * Case-insensitive string comparison with offset support.
+     * This variant allows comparing starting from an offset in string b,
+     * avoiding the need to create substring allocations.
+     */
+    private static int cstrcasecmp_with_null_offset(String a, String b, int bOffset, int n) {
+        char ca;
+        char cb;
+        int aIdx = 0;
+        int bIdx = bOffset;
+
+        while (n-- > 0 && bIdx < b.length()) {
+            cb = b.charAt(bIdx++);
+            if (cb == '\0') continue;
+
+            if (aIdx >= a.length()) {
+                return 1;
+            }
+            ca = a.charAt(aIdx++);
+
+            if (cb >= 'a' && cb <= 'z') {
+                cb -= 0x20;
+            }
+            if (ca != cb) {
+                return 1;
+            }
+        }
+
+        if (aIdx == a.length()) {
+            return 0;
+        } else {
+            return 1;
+        }
+    }
+
+    /**
      * Checks if string b starts with string a, considering HTML encoding.
      * <p>
      * This method decodes HTML entities in b while comparing.
@@ -700,12 +735,22 @@ public class LibInjectionXSS {
      * @return true if b starts with a (after decoding), false otherwise
      */
     private static boolean htmlencode_startswith(String a, String b, int n) {
-        int bOffset = 0;
+        return htmlencode_startswith_offset(a, b, 0, n);
+    }
+
+    /**
+     * Checks if string b (starting at bStartOffset) starts with string a, considering HTML encoding.
+     * This variant accepts an offset to avoid substring allocations.
+     */
+    private static boolean htmlencode_startswith_offset(String a, String b, int bStartOffset, int n) {
+        int bOffset = bStartOffset;
+        int aOffset = 0;
+        int aLen = a.length();
         int cb;
         boolean first = true;
 
         while (n > 0 && bOffset < b.length()) {
-            if (a.isEmpty()) {
+            if (aOffset >= aLen) {
                 return true;
             }
             HtmlDecodeResult result = html_decode_char_at(b, n, bOffset);
@@ -730,13 +775,13 @@ public class LibInjectionXSS {
                 cb -= 0x20;
             }
 
-            if (a.charAt(0) != (char) cb) {
+            if (a.charAt(aOffset) != (char) cb) {
                 return false;
             }
-            a = a.substring(1);
+            aOffset++;
         }
 
-        return a.isEmpty();
+        return aOffset >= aLen;
     }
 
     /**
@@ -803,8 +848,7 @@ public class LibInjectionXSS {
 
             // JavaScript on.* event handlers
             if ((c0 == 'o' || c0 == 'O') && (c1 == 'n' || c1 == 'N')) {
-                // Start comparing from the third char (skip "on")
-                String sWithoutOn = s.substring(2);
+                // Start comparing from the third char (skip "on") using offset to avoid substring
                 int sWithoutOnLen = len - 2;
 
                 for (StringType black : BLACKATTREVENT) {
@@ -812,7 +856,7 @@ public class LibInjectionXSS {
                     int blackNameLen = black.name.length();
                     // Determine the maximum length to compare
                     int maxLen = Math.min(sWithoutOnLen, blackNameLen);
-                    if (cstrcasecmp_with_null(black.name, sWithoutOn, maxLen) == 0) {
+                    if (cstrcasecmp_with_null_offset(black.name, s, 2, maxLen) == 0) {
                         return black.atype;
                     }
                 }
@@ -861,21 +905,20 @@ public class LibInjectionXSS {
             }
         }
 
-        String remaining = s.substring(offset);
-
-        if (htmlencode_startswith(data_url, remaining, len)) {
+        // Use offset version to avoid substring allocation
+        if (htmlencode_startswith_offset(data_url, s, offset, len)) {
             return true;
         }
 
-        if (htmlencode_startswith(viewsource_url, remaining, len)) {
+        if (htmlencode_startswith_offset(viewsource_url, s, offset, len)) {
             return true;
         }
 
-        if (htmlencode_startswith(javascript_url, remaining, len)) {
+        if (htmlencode_startswith_offset(javascript_url, s, offset, len)) {
             return true;
         }
 
-        if (htmlencode_startswith(vbscript_url, remaining, len)) {
+        if (htmlencode_startswith_offset(vbscript_url, s, offset, len)) {
             return true;
         }
         return false;
@@ -902,11 +945,11 @@ public class LibInjectionXSS {
             if (h5.token_type == Html5Type.DOCTYPE) {
                 return true;
             } else if (h5.token_type == Html5Type.TAG_NAME_OPEN) {
-                if (is_black_tag(h5.token_start, h5.token_len)) {
+                if (is_black_tag(h5.getTokenString(), h5.token_len)) {
                     return true;
                 }
             } else if (h5.token_type == Html5Type.ATTR_NAME) {
-                attr = is_black_attr(h5.token_start, h5.token_len);
+                attr = is_black_attr(h5.getTokenString(), h5.token_len);
             } else if (h5.token_type == Html5Type.ATTR_VALUE) {
                 switch (attr) {
                     case TYPE_NONE:
@@ -914,28 +957,28 @@ public class LibInjectionXSS {
                     case TYPE_BLACK:
                         return true;
                     case TYPE_ATTR_URL:
-                        if (is_black_url(h5.token_start, h5.token_len)) {
+                        if (is_black_url(h5.getTokenString(), h5.token_len)) {
                             return true;
                         }
                         break;
                     case TYPE_STYLE:
                         return true;
                     case TYPE_ATTR_INDIRECT:
-                        if (is_black_attr(h5.token_start, h5.token_len) != AttributeType.TYPE_NONE) {
+                        if (is_black_attr(h5.getTokenString(), h5.token_len) != AttributeType.TYPE_NONE) {
                             return true;
                         }
                         break;
                 }
                 attr = AttributeType.TYPE_NONE;
             } else if (h5.token_type == Html5Type.TAG_COMMENT) {
-                if (h5.token_start.indexOf('`') != -1) {
+                if (h5.tokenIndexOf('`') != -1) {
                     return true;
                 }
 
                 if (h5.token_len > 3) {
-                    char c0 = h5.token_start.charAt(0);
-                    char c1 = h5.token_start.charAt(1);
-                    char c2 = h5.token_start.charAt(2);
+                    char c0 = h5.getTokenCharAt(0);
+                    char c1 = h5.getTokenCharAt(1);
+                    char c2 = h5.getTokenCharAt(2);
                     if (c0 == '[' &&
                         (c1 == 'i' || c1 == 'I') &&
                         (c2 == 'f' || c2 == 'F')) {
@@ -949,11 +992,11 @@ public class LibInjectionXSS {
                 }
 
                 if (h5.token_len > 5) {
-                    if (cstrcasecmp_with_null("IMPORT", h5.token_start, 6) == 0) {
+                    if (cstrcasecmp_with_null("IMPORT", h5.getTokenString(), 6) == 0) {
                         return true;
                     }
 
-                    if (cstrcasecmp_with_null("ENTITY", h5.token_start, 6) == 0) {
+                    if (cstrcasecmp_with_null("ENTITY", h5.getTokenString(), 6) == 0) {
                         return true;
                     }
                 }

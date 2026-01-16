@@ -73,6 +73,20 @@ public class LibInjectionSQLi {
         }
     }
 
+    /**
+     * Converts a fingerprint char array to a String, excluding null characters.
+     * This is more efficient than new String(fp).replace("\0", "") which creates two String objects.
+     */
+    private static String fingerprintToString(char[] fp) {
+        int len = 0;
+        for (char c : fp) {
+            if (c != '\0') len++;
+            else break; // Fingerprints are null-terminated, so we can stop at first null
+        }
+        if (len == 0) return "";
+        return new String(fp, 0, len);
+    }
+
     private static int memchr2(String haystack, int offset, int len, char c0, char c1) {
         if (len < 2) {
             return -1;
@@ -208,7 +222,7 @@ public class LibInjectionSQLi {
         SqliState sql_state = new SqliState();
         libinjection_sqli_init(sql_state, input, input.length(), 0);
         boolean result = libinjection_is_sqli(sql_state);
-        String fingerprint = new String(sql_state.fingerprint).replace("\0", "");
+        String fingerprint = fingerprintToString(sql_state.fingerprint);
         return new SqliResult(result, fingerprint);
     }
 
@@ -299,7 +313,21 @@ public class LibInjectionSQLi {
             }
         }
 
-        if (s.indexOf(CHAR_SINGLE) != -1) {
+        // Single-pass quote detection instead of two separate indexOf calls
+        boolean hasSingleQuote = false;
+        boolean hasDoubleQuote = false;
+        for (int i = 0; i < slen; i++) {
+            char c = s.charAt(i);
+            if (c == CHAR_SINGLE) {
+                hasSingleQuote = true;
+                if (hasDoubleQuote) break; // Found both, no need to continue
+            } else if (c == CHAR_DOUBLE) {
+                hasDoubleQuote = true;
+                if (hasSingleQuote) break; // Found both, no need to continue
+            }
+        }
+
+        if (hasSingleQuote) {
             libinjection_sqli_fingerprint(sql_state, FLAG_QUOTE_SINGLE | FLAG_SQL_ANSI);
             if (libinjection_sqli_check_fingerprint(sql_state)) {
                 return true;
@@ -311,7 +339,7 @@ public class LibInjectionSQLi {
             }
         }
 
-        if (s.indexOf(CHAR_DOUBLE) != -1) {
+        if (hasDoubleQuote) {
             libinjection_sqli_fingerprint(sql_state, FLAG_QUOTE_DOUBLE | FLAG_SQL_MYSQL);
             if (libinjection_sqli_check_fingerprint(sql_state)) {
                 return true;
@@ -373,7 +401,7 @@ public class LibInjectionSQLi {
 
     private static boolean libinjection_sqli_blacklist(SqliState sql_state) {
         char[] fp2 = new char[8];
-        String fpStr = new String(sql_state.fingerprint).replace("\0", "");
+        String fpStr = fingerprintToString(sql_state.fingerprint);
         int len = fpStr.length();
 
         if (len < 1) {
@@ -395,7 +423,7 @@ public class LibInjectionSQLi {
     }
 
     private static boolean libinjection_sqli_not_whitelist(SqliState sql_state) {
-        String fpStr = new String(sql_state.fingerprint).replace("\0", "");
+        String fpStr = fingerprintToString(sql_state.fingerprint);
         int tlen = fpStr.length();
 
         if (tlen > 1 && sql_state.fingerprint[tlen - 1] == TYPE_COMMENT) {

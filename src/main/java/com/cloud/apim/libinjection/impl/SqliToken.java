@@ -59,22 +59,26 @@ public class SqliToken {
     
     /**
      * Clears all token data, resetting it to default values.
+     * Only clears the portion of the value array that was actually used.
      */
     public void clear() {
+        // Only clear the used portion of the array (plus one for safety)
+        int clearLen = Math.min(this.len + 1, val.length);
+        for (int i = 0; i < clearLen; i++) {
+            val[i] = '\0';
+        }
         this.pos = 0;
         this.len = 0;
         this.count = 0;
         this.type = '\0';
         this.str_open = '\0';
         this.str_close = '\0';
-        for (int i = 0; i < val.length; i++) {
-            val[i] = '\0';
-        }
     }
     
     /**
      * Copies data from another token into this token.
-     * 
+     * Only copies the portion of the value array that is actually used.
+     *
      * @param src the source token to copy from
      */
     public void copy(SqliToken src) {
@@ -84,6 +88,8 @@ public class SqliToken {
         this.type = src.type;
         this.str_open = src.str_open;
         this.str_close = src.str_close;
-        System.arraycopy(src.val, 0, this.val, 0, src.val.length);
+        // Only copy the used portion (plus one for null terminator safety)
+        int copyLen = Math.min(src.len + 1, src.val.length);
+        System.arraycopy(src.val, 0, this.val, 0, copyLen);
     }
 }

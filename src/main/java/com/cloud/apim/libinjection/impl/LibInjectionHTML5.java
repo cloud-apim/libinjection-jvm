@@ -49,7 +49,7 @@ public class LibInjectionHTML5 {
         hs.len = len;
         hs.pos = 0;
         hs.is_close = false;
-        hs.token_start = null;
+        hs.token_start_pos = 0;
         hs.token_len = 0;
         hs.token_type = null;
         
@@ -142,7 +142,7 @@ public class LibInjectionHTML5 {
     private static int h5_state_data(H5State hs) {
         int idx = hs.s.indexOf(CHAR_LT, hs.pos);
         if (idx == -1) {
-            hs.token_start = hs.s.substring(hs.pos);
+            hs.token_start_pos = hs.pos;
             hs.token_len = hs.len - hs.pos;
             hs.token_type = Html5Type.DATA_TEXT;
             hs.state = LibInjectionHTML5::h5_state_eof;
@@ -150,7 +150,7 @@ public class LibInjectionHTML5 {
                 return 0;
             }
         } else {
-            hs.token_start = hs.s.substring(hs.pos);
+            hs.token_start_pos = hs.pos;
             hs.token_type = Html5Type.DATA_TEXT;
             hs.token_len = idx - hs.pos;
             hs.pos = idx + 1;
@@ -194,7 +194,7 @@ public class LibInjectionHTML5 {
             if (hs.pos == 0) {
                 return h5_state_data(hs);
             }
-            hs.token_start = hs.s.substring(hs.pos - 1, hs.pos);
+            hs.token_start_pos = hs.pos - 1;
             hs.token_len = 1;
             hs.token_type = Html5Type.DATA_TEXT;
             hs.state = LibInjectionHTML5::h5_state_data;
@@ -231,7 +231,7 @@ public class LibInjectionHTML5 {
      */
     private static int h5_state_tag_name_close(H5State hs) {
         hs.is_close = false;
-        hs.token_start = hs.s.substring(hs.pos, hs.pos + 1);
+        hs.token_start_pos = hs.pos;
         hs.token_len = 1;
         hs.token_type = Html5Type.TAG_NAME_CLOSE;
         hs.pos += 1;
@@ -257,21 +257,21 @@ public class LibInjectionHTML5 {
             if (ch == 0) {
                 pos += 1;
             } else if (h5_is_white(ch)) {
-                hs.token_start = hs.s.substring(hs.pos, pos);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = pos - hs.pos;
                 hs.token_type = Html5Type.TAG_NAME_OPEN;
                 hs.pos = pos + 1;
                 hs.state = LibInjectionHTML5::h5_state_before_attribute_name;
                 return 1;
             } else if (ch == CHAR_SLASH) {
-                hs.token_start = hs.s.substring(hs.pos, pos);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = pos - hs.pos;
                 hs.token_type = Html5Type.TAG_NAME_OPEN;
                 hs.pos = pos + 1;
                 hs.state = LibInjectionHTML5::h5_state_self_closing_start_tag;
                 return 1;
             } else if (ch == CHAR_GT) {
-                hs.token_start = hs.s.substring(hs.pos, pos);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = pos - hs.pos;
                 if (hs.is_close) {
                     hs.pos = pos + 1;
@@ -288,8 +288,8 @@ public class LibInjectionHTML5 {
                 pos += 1;
             }
         }
-        
-        hs.token_start = hs.s.substring(hs.pos);
+
+        hs.token_start_pos = hs.pos;
         hs.token_len = hs.len - hs.pos;
         hs.token_type = Html5Type.TAG_NAME_OPEN;
         hs.state = LibInjectionHTML5::h5_state_eof;
@@ -312,7 +312,7 @@ public class LibInjectionHTML5 {
                 return h5_state_self_closing_start_tag(hs);
             case CHAR_GT:
                 hs.state = LibInjectionHTML5::h5_state_data;
-                hs.token_start = hs.s.substring(hs.pos, hs.pos + 1);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = 1;
                 hs.token_type = Html5Type.TAG_NAME_CLOSE;
                 hs.pos += 1;
@@ -334,28 +334,28 @@ public class LibInjectionHTML5 {
         while (pos < hs.len) {
             ch = hs.s.charAt(pos);
             if (h5_is_white(ch)) {
-                hs.token_start = hs.s.substring(hs.pos, pos);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = pos - hs.pos;
                 hs.token_type = Html5Type.ATTR_NAME;
                 hs.state = LibInjectionHTML5::h5_state_after_attribute_name;
                 hs.pos = pos + 1;
                 return 1;
             } else if (ch == CHAR_SLASH) {
-                hs.token_start = hs.s.substring(hs.pos, pos);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = pos - hs.pos;
                 hs.token_type = Html5Type.ATTR_NAME;
                 hs.state = LibInjectionHTML5::h5_state_self_closing_start_tag;
                 hs.pos = pos + 1;
                 return 1;
             } else if (ch == CHAR_EQUALS) {
-                hs.token_start = hs.s.substring(hs.pos, pos);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = pos - hs.pos;
                 hs.token_type = Html5Type.ATTR_NAME;
                 hs.state = LibInjectionHTML5::h5_state_before_attribute_value;
                 hs.pos = pos + 1;
                 return 1;
             } else if (ch == CHAR_GT) {
-                hs.token_start = hs.s.substring(hs.pos, pos);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = pos - hs.pos;
                 hs.token_type = Html5Type.ATTR_NAME;
                 hs.state = LibInjectionHTML5::h5_state_tag_name_close;
@@ -365,7 +365,7 @@ public class LibInjectionHTML5 {
                 pos += 1;
             }
         }
-        hs.token_start = hs.s.substring(hs.pos);
+        hs.token_start_pos = hs.pos;
         hs.token_len = hs.len - hs.pos;
         hs.token_type = Html5Type.ATTR_NAME;
         hs.state = LibInjectionHTML5::h5_state_eof;
@@ -433,15 +433,15 @@ public class LibInjectionHTML5 {
         if (hs.pos > 0) {
             hs.pos += 1;
         }
-        
+
         int idx = hs.s.indexOf(qchar, hs.pos);
         if (idx == -1) {
-            hs.token_start = hs.s.substring(hs.pos);
+            hs.token_start_pos = hs.pos;
             hs.token_len = hs.len - hs.pos;
             hs.token_type = Html5Type.ATTR_VALUE;
             hs.state = LibInjectionHTML5::h5_state_eof;
         } else {
-            hs.token_start = hs.s.substring(hs.pos, idx);
+            hs.token_start_pos = hs.pos;
             hs.token_len = idx - hs.pos;
             hs.token_type = Html5Type.ATTR_VALUE;
             hs.state = LibInjectionHTML5::h5_state_after_attribute_value_quoted_state;
@@ -493,14 +493,14 @@ public class LibInjectionHTML5 {
             ch = hs.s.charAt(pos);
             if (h5_is_white(ch)) {
                 hs.token_type = Html5Type.ATTR_VALUE;
-                hs.token_start = hs.s.substring(hs.pos, pos);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = pos - hs.pos;
                 hs.pos = pos + 1;
                 hs.state = LibInjectionHTML5::h5_state_before_attribute_name;
                 return 1;
             } else if (ch == CHAR_GT) {
                 hs.token_type = Html5Type.ATTR_VALUE;
-                hs.token_start = hs.s.substring(hs.pos, pos);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = pos - hs.pos;
                 hs.pos = pos;
                 hs.state = LibInjectionHTML5::h5_state_tag_name_close;
@@ -509,7 +509,7 @@ public class LibInjectionHTML5 {
             pos += 1;
         }
         hs.state = LibInjectionHTML5::h5_state_eof;
-        hs.token_start = hs.s.substring(hs.pos);
+        hs.token_start_pos = hs.pos;
         hs.token_len = hs.len - hs.pos;
         hs.token_type = Html5Type.ATTR_VALUE;
         return 1;
@@ -533,7 +533,7 @@ public class LibInjectionHTML5 {
             hs.pos += 1;
             return h5_state_self_closing_start_tag(hs);
         } else if (ch == CHAR_GT) {
-            hs.token_start = hs.s.substring(hs.pos, hs.pos + 1);
+            hs.token_start_pos = hs.pos;
             hs.token_len = 1;
             hs.token_type = Html5Type.TAG_NAME_CLOSE;
             hs.pos += 1;
@@ -556,7 +556,7 @@ public class LibInjectionHTML5 {
         }
         char ch = hs.s.charAt(hs.pos);
         if (ch == CHAR_GT) {
-            hs.token_start = hs.s.substring(hs.pos - 1, hs.pos + 1);
+            hs.token_start_pos = hs.pos - 1;
             hs.token_len = 2;
             hs.token_type = Html5Type.TAG_NAME_SELFCLOSE;
             hs.state = LibInjectionHTML5::h5_state_data;
@@ -576,17 +576,17 @@ public class LibInjectionHTML5 {
     private static int h5_state_bogus_comment(H5State hs) {
         int idx = hs.s.indexOf(CHAR_GT, hs.pos);
         if (idx == -1) {
-            hs.token_start = hs.s.substring(hs.pos);
+            hs.token_start_pos = hs.pos;
             hs.token_len = hs.len - hs.pos;
             hs.pos = hs.len;
             hs.state = LibInjectionHTML5::h5_state_eof;
         } else {
-            hs.token_start = hs.s.substring(hs.pos, idx);
+            hs.token_start_pos = hs.pos;
             hs.token_len = idx - hs.pos;
             hs.pos = idx + 1;
             hs.state = LibInjectionHTML5::h5_state_data;
         }
-        
+
         hs.token_type = Html5Type.TAG_COMMENT;
         return 1;
     }
@@ -602,20 +602,20 @@ public class LibInjectionHTML5 {
         while (true) {
             int idx = hs.s.indexOf(CHAR_PERCENT, pos);
             if (idx == -1 || idx + 1 >= hs.len) {
-                hs.token_start = hs.s.substring(hs.pos);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = hs.len - hs.pos;
                 hs.pos = hs.len;
                 hs.token_type = Html5Type.TAG_COMMENT;
                 hs.state = LibInjectionHTML5::h5_state_eof;
                 return 1;
             }
-            
+
             if (hs.s.charAt(idx + 1) != CHAR_GT) {
                 pos = idx + 1;
                 continue;
             }
-            
-            hs.token_start = hs.s.substring(hs.pos, idx);
+
+            hs.token_start_pos = hs.pos;
             hs.token_len = idx - hs.pos;
             hs.pos = idx + 2;
             hs.state = LibInjectionHTML5::h5_state_data;
@@ -672,50 +672,50 @@ public class LibInjectionHTML5 {
         int pos = hs.pos;
         while (true) {
             int idx = hs.s.indexOf(CHAR_DASH, pos);
-            
+
             if (idx == -1 || idx > hs.len - 3) {
                 hs.state = LibInjectionHTML5::h5_state_eof;
-                hs.token_start = hs.s.substring(hs.pos);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = hs.len - hs.pos;
                 hs.token_type = Html5Type.TAG_COMMENT;
                 return 1;
             }
             int offset = 1;
-            
+
             while (idx + offset < hs.len && hs.s.charAt(idx + offset) == 0) {
                 offset += 1;
             }
             if (idx + offset == hs.len) {
                 hs.state = LibInjectionHTML5::h5_state_eof;
-                hs.token_start = hs.s.substring(hs.pos);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = hs.len - hs.pos;
                 hs.token_type = Html5Type.TAG_COMMENT;
                 return 1;
             }
-            
+
             ch = hs.s.charAt(idx + offset);
             if (ch != CHAR_DASH && ch != CHAR_BANG) {
                 pos = idx + 1;
                 continue;
             }
-            
+
             offset += 1;
             if (idx + offset == hs.len) {
                 hs.state = LibInjectionHTML5::h5_state_eof;
-                hs.token_start = hs.s.substring(hs.pos);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = hs.len - hs.pos;
                 hs.token_type = Html5Type.TAG_COMMENT;
                 return 1;
             }
-            
+
             ch = hs.s.charAt(idx + offset);
             if (ch != CHAR_GT) {
                 pos = idx + 1;
                 continue;
             }
             offset += 1;
-            
-            hs.token_start = hs.s.substring(hs.pos, idx);
+
+            hs.token_start_pos = hs.pos;
             hs.token_len = idx - hs.pos;
             hs.pos = idx + offset;
             hs.state = LibInjectionHTML5::h5_state_data;
@@ -734,16 +734,16 @@ public class LibInjectionHTML5 {
         int pos = hs.pos;
         while (true) {
             int idx = hs.s.indexOf(CHAR_RIGHTB, pos);
-            
+
             if (idx == -1 || idx > hs.len - 3) {
                 hs.state = LibInjectionHTML5::h5_state_eof;
-                hs.token_start = hs.s.substring(hs.pos);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = hs.len - hs.pos;
                 hs.token_type = Html5Type.DATA_TEXT;
                 return 1;
             } else if (hs.s.charAt(idx + 1) == CHAR_RIGHTB && hs.s.charAt(idx + 2) == CHAR_GT) {
                 hs.state = LibInjectionHTML5::h5_state_data;
-                hs.token_start = hs.s.substring(hs.pos, idx);
+                hs.token_start_pos = hs.pos;
                 hs.token_len = idx - hs.pos;
                 hs.pos = idx + 3;
                 hs.token_type = Html5Type.DATA_TEXT;
@@ -761,9 +761,9 @@ public class LibInjectionHTML5 {
      * @return 1 if a token was extracted, 0 otherwise
      */
     private static int h5_state_doctype(H5State hs) {
-        hs.token_start = hs.s.substring(hs.pos);
+        hs.token_start_pos = hs.pos;
         hs.token_type = Html5Type.DOCTYPE;
-        
+
         int idx = hs.s.indexOf(CHAR_GT, hs.pos);
         if (idx == -1) {
             hs.state = LibInjectionHTML5::h5_state_eof;

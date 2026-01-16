@@ -92,7 +92,7 @@ public class Html5ParserTests {
             result.append(",");
             result.append(h5.token_len);
             result.append(",");
-            result.append(h5.token_start.substring(0, h5.token_len));
+            result.append(h5.getTokenString());
         }
 
         return result.toString();
